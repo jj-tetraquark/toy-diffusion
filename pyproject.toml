@@ -1,0 +1,27 @@
+[project]
+name = "toy-diffusion"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Juno Dark",email = "jj@tetraquark.xyz"}
+]
+readme = "README.md"
+requires-python = ">=3.14.6"
+dependencies = [
+    "torch (>=2.13.0,<3.0.0)",
+    "torchvision (>=0.28.0,<0.29.0)",
+    "lightning (>=2.6.5,<3.0.0)",
+    "tensorboard (>=2.21.0,<3.0.0)"
+]
+
+[tool.poetry]
+packages = [{include = "toy_diffusion", from = "src"}]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "ruff (>=0.16.0,<0.17.0)"
+]
