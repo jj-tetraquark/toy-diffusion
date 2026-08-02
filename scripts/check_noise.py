@@ -12,14 +12,16 @@ def denormalize(img):
     return (img * 0.5 + 0.5).clamp(0, 1)
 
 
-def show_noise_progression(image, timesteps=10, title="Noise application", schedule="cosine"):
+def show_noise_progression(
+    image, timesteps=10, title="Noise application", schedule="cosine"
+):
     fig, axes = plt.subplots(1, timesteps, figsize=(timesteps * 2, 2))
 
     diffusion = DiffusionModule(
         None,
         cosine_beta_schedule if schedule == "cosine" else linear_beta_schedule,
         timesteps,
-        1e-3
+        1e-3,
     )
 
     for t in range(timesteps):

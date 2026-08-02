@@ -24,7 +24,7 @@ class DiffusionModule(L.LightningModule):
         self._lr = lr
 
         betas = beta_schedule(timesteps)
-        self._alphas_cumprod = (1 - betas).cumprod(dim=0)
+        self.register_buffer("_alphas_cumprod", (1 - betas).cumprod(dim=0))
 
         if noise is None:
             self._noise = torch.randn_like
@@ -35,29 +35,41 @@ class DiffusionModule(L.LightningModule):
         a_bar = self._alphas_cumprod[t].view(-1, 1, 1, 1)
         x_t = a_bar.sqrt() * x_0 + (1 - a_bar).sqrt() * noise
 
-        return x_t
+        return x_t, noise
 
     def _do_step(self, batch, batch_idx):
         x = batch
         batch_size = x.shape[0]
 
-        t = torch.randint(0, self.timesteps, (batch_size, 1)).long()
+        t = torch.randint(0, self.timesteps, (batch_size, 1)).long().to(self.device)
 
-        noised_images = self.add_noise(x, t)
-        noise_pred(noisy_images, t)
+        noised_images, noise = self.add_noise(x, t)
+        noise_pred = self.model(noised_images, t)
 
         loss = F.mse_loss(noise_pred, noise)
 
         return loss
 
     def training_step(self, batch, batch_idx):
-        return self._do_step(batch, batch_idx)
+        loss = self._do_step(batch, batch_idx)
+        self.log("train_loss", loss, prog_bar=True)
+        return loss
 
     def validation_step(self, batch, batch_idx):
-        return self._do_step(batch, batch_idx)
+        loss = self._do_step(batch, batch_idx)
+        self.log("val_loss", loss, prog_bar=True)
+        return loss
 
     def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=self._lr)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, T_max=30, eta_min=1e-6
+        )
         return {
-            "optimizer": torch.optim.Adam(self.model.parameters, lr=self._lr),
-            "lr_scheduler": torch.optim.lr_scheduler.CosineAnnealingLR,
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": scheduler,
+                "interval": "epoch",
+                "frequency": 1,
+            },
         }

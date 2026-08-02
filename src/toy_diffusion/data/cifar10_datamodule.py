@@ -21,6 +21,7 @@ class CIFAR10DataModule(L.LightningDataModule):
     def __init__(
         self, data_dir: str = "datasets/", batch_size=64, num_workers=0, seed=42
     ):
+        super().__init__()
         self._data_dir = data_dir
         self._transform = transforms.Compose(
             [
