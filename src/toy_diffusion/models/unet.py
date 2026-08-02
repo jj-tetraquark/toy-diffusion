@@ -18,22 +18,25 @@ class SinusoidalPositionalEmbedding(nn.Module):
         embedding = pos / self._denom
         return torch.cat((embedding.sin(), embedding.cos()), dim=-1)
 
+
 class ResidualBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, time_embedding_dim, num_groups=32, dropout=0.1):
+    def __init__(
+        self, in_channels, out_channels, time_embedding_dim, num_groups=32, dropout=0.1
+    ):
         super().__init__()
         self._time_proj = nn.Linear(time_embedding_dim, out_channels)
 
         self._block1 = nn.Sequential(
             nn.GroupNorm(num_groups, in_channels),
             nn.SiLU(),
-            nn.Conv2d(in_channels, out_channels, 3, padding="same")
+            nn.Conv2d(in_channels, out_channels, 3, padding="same"),
         )
 
         self._block2 = nn.Sequential(
             nn.GroupNorm(num_groups, out_channels),
             nn.SiLU(),
             nn.Dropout(dropout),
-            nn.Conv2d(out_channels, out_channels, 3, padding="same")
+            nn.Conv2d(out_channels, out_channels, 3, padding="same"),
         )
 
         if in_channels != out_channels:
@@ -62,16 +65,17 @@ class AttentionBlock(nn.Module):
         q, k, v = qkv.chunk(3, dim=1)
 
         width = q.shape[-1]
-        q = einops.rearrange(q, 'b c h w -> b (h w) c')
-        k = einops.rearrange(k, 'b c h w -> b c (h w)')
-        v = einops.rearrange(v, 'b c h w -> b (h w) c')
+        q = einops.rearrange(q, "b c h w -> b (h w) c")
+        k = einops.rearrange(k, "b c h w -> b c (h w)")
+        v = einops.rearrange(v, "b c h w -> b (h w) c")
 
         d_k = k.shape[1]
 
         attn = torch.softmax((q @ k) * (d_k**-0.5), dim=-1)
-        h = einops.rearrange(attn @ v, 'b (h w) c -> b c h w', w=width)
+        h = einops.rearrange(attn @ v, "b (h w) c -> b c h w", w=width)
 
         return x + self.proj(h)
+
 
 class UNet(nn.Module):
     def __init__(
@@ -81,7 +85,7 @@ class UNet(nn.Module):
         time_emb_dim=128,
         channels=(128, 256, 1024, 2048),
         num_groups=32,
-        dropout=0.1
+        dropout=0.1,
     ):
         super().__init__()
 
@@ -89,7 +93,7 @@ class UNet(nn.Module):
             SinusoidalPositionalEmbedding(time_emb_dim),
             nn.Linear(time_emb_dim, time_emb_dim * 4),
             nn.SiLU(),
-            nn.Linear(time_emb_dim * 4, time_emb_dim)
+            nn.Linear(time_emb_dim * 4, time_emb_dim),
         )
 
         self._conv_in = nn.Conv2d(in_channels, channels[0], 3, padding="same")
@@ -105,7 +109,6 @@ class UNet(nn.Module):
                 ResidualBlock(in_ch, out_ch, time_emb_dim, num_groups, dropout)
             )
             self._down_samples.append(nn.Conv2d(out_ch, out_ch, 3, stride=2, padding=1))
-
 
         self._mid_block1 = ResidualBlock(
             midpoint_channels, midpoint_channels, time_emb_dim, num_groups, dropout
@@ -138,7 +141,9 @@ class UNet(nn.Module):
         h = self._conv_in(x)
 
         skip_connections = []
-        for down_block, down_sample in zip(self._down_blocks, self._down_samples, strict=True):
+        for down_block, down_sample in zip(
+            self._down_blocks, self._down_samples, strict=True
+        ):
             h = down_block(h, t_emb)
             skip_connections.append(h)
             h = down_sample(h)
@@ -157,18 +162,18 @@ class UNet(nn.Module):
         return h
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     model = UNet(
         in_channels=3,
         out_channels=3,
         time_emb_dim=128,
-        channels=[128, 256, 1024, 2048, 4096]
+        channels=[128, 256, 1024, 2048, 4096],
     )
 
     print(model)
 
     x = torch.randn(4, 3, 64, 64)
-    t = torch.randint(0, 1000, (4,1))
+    t = torch.randint(0, 1000, (4, 1))
     with torch.no_grad():
         output = model(x, t)
 

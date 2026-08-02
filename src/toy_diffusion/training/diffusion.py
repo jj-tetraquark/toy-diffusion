@@ -2,14 +2,16 @@ import torch
 import torch.nn.functional as F
 import lightning as L
 
+
 def linear_beta_schedule(timestamps, start=0.0001, end=0.02):
     return torch.linspace(start, end, timestamps)
 
+
 def cosine_beta_schedule(timestamps, s=0.008):
     t = torch.arange(timestamps + 1)
-    f_x = torch.cos((t/timestamps + s)/(1 + s) * torch.pi/2)**2
-    a_t = f_x/f_x[0]
-    B_t = 1 - a_t[1:]/(a_t[:-1])
+    f_x = torch.cos((t / timestamps + s) / (1 + s) * torch.pi / 2) ** 2
+    a_t = f_x / f_x[0]
+    B_t = 1 - a_t[1:] / (a_t[:-1])
     return torch.clip(B_t, 1e-4, 0.9999)
 
 
@@ -27,11 +29,10 @@ class DiffusionModule(L.LightningModule):
         if noise is None:
             self._noise = torch.randn_like
 
-
     def add_noise(self, x_0, t):
         noise = self._noise(x_0)
 
-        a_bar = self._alphas.cumprod[t].view(-1, 1, 1, 1)
+        a_bar = self._alphas_cumprod[t].view(-1, 1, 1, 1)
         x_t = a_bar.sqrt() * x_0 + (1 - a_bar).sqrt() * noise
 
         return x_t
@@ -40,7 +41,7 @@ class DiffusionModule(L.LightningModule):
         x = batch
         batch_size = x.shape[0]
 
-        t = torch.randint(0, self.timesteps, (batch_size,1)).long()
+        t = torch.randint(0, self.timesteps, (batch_size, 1)).long()
 
         noised_images = self.add_noise(x, t)
         noise_pred(noisy_images, t)
@@ -58,5 +59,5 @@ class DiffusionModule(L.LightningModule):
     def configure_optimizers(self):
         return {
             "optimizer": torch.optim.Adam(self.model.parameters, lr=self._lr),
-            "lr_scheduler": torch.optim.lr_scheduler.CosineAnnealingLR
+            "lr_scheduler": torch.optim.lr_scheduler.CosineAnnealingLR,
         }
