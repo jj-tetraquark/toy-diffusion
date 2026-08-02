@@ -58,6 +58,7 @@ class CIFAR10DataModule(L.LightningDataModule):
             shuffle=True,
             num_workers=self._num_workers,
             pin_memory=True,
+            persistent_workers=True,
         )
 
     def val_dataloader(self):
@@ -67,6 +68,7 @@ class CIFAR10DataModule(L.LightningDataModule):
             shuffle=False,
             num_workers=self._num_workers,
             pin_memory=True,
+            persistent_workers=True,
         )
 
     def test_dataloader(self):

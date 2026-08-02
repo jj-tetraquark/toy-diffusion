@@ -1,6 +1,6 @@
+import lightning as L
 import torch
 import torch.nn.functional as F
-import lightning as L
 
 
 def linear_beta_schedule(timestamps, start=0.0001, end=0.02):

@@ -1,9 +1,10 @@
 import matplotlib.pyplot as plt
+
 from toy_diffusion.data import CIFAR10DataModule
 from toy_diffusion.training.diffusion import (
     DiffusionModule,
-    linear_beta_schedule,
     cosine_beta_schedule,
+    linear_beta_schedule,
 )
 
 
