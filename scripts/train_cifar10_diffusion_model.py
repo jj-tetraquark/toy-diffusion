@@ -13,6 +13,7 @@ def parse_args():
     parser = ArgumentParser()
     parser.add_argument("--lr", type=float, default=3e-4)
     parser.add_argument("--epochs", type=int, default=100)
+    parser.add_argument("--batch-size", type=int, default=64)
 
     return parser.parse_args()
 
@@ -20,7 +21,7 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
 
-    datamodule = CIFAR10DataModule(num_workers=4)
+    datamodule = CIFAR10DataModule(num_workers=4, batch_size=args.batch_size)
 
     model = DiffusionModule(
         UNet(),
