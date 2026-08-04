@@ -6,7 +6,8 @@ from lightning.pytorch.loggers import TensorBoardLogger
 
 from toy_diffusion.data.cifar10_datamodule import CIFAR10DataModule
 from toy_diffusion.models.unet import UNet
-from toy_diffusion.training.diffusion import DiffusionModule, cosine_beta_schedule
+from toy_diffusion.training.diffusion import DiffusionModule
+from toy_diffusion.utils.beta_schedules import cosine_beta_schedule
 
 
 def parse_args():
