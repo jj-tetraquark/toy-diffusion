@@ -9,7 +9,7 @@ def sample_ddim(model, shape, inference_steps=50, temperature=0.0):
 
     timesteps = torch.linspace(
         model.timesteps - 1, 0, inference_steps + 1, dtype=torch.long, device=model.device
-    )
+    ).round().long()
 
     noise_schedule = model.get_noise_schedule()
 
@@ -25,6 +25,7 @@ def sample_ddim(model, shape, inference_steps=50, temperature=0.0):
         a_bar_next = noise_schedule[next_t]
 
         pred_x0 = (img - (1 - a_bar_t).sqrt() * noise_pred) / a_bar_t.sqrt()
+        pred_x0 = pred_x0.clamp(-1, 1)
 
         dir_xt = (
             1 - a_bar_next - temperature**2 * (1 - a_bar_next)
