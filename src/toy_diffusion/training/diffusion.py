@@ -3,18 +3,6 @@ import torch
 import torch.nn.functional as F
 
 
-def linear_beta_schedule(timestamps, start=0.0001, end=0.02):
-    return torch.linspace(start, end, timestamps)
-
-
-def cosine_beta_schedule(timestamps, s=0.008):
-    t = torch.arange(timestamps + 1)
-    f_x = torch.cos((t / timestamps + s) / (1 + s) * torch.pi / 2) ** 2
-    a_t = f_x / f_x[0]
-    B_t = 1 - a_t[1:] / (a_t[:-1])
-    return torch.clip(B_t, 1e-4, 0.9999)
-
-
 class DiffusionModule(L.LightningModule):
     def __init__(self, model, beta_schedule, timesteps, lr, noise=None):
         super().__init__()
@@ -29,11 +17,17 @@ class DiffusionModule(L.LightningModule):
         if noise is None:
             self._noise = torch.randn_like
 
+    def forward(self, x, t):
+        return self.model(x, t)
+
+    def get_noise_schedule(self):
+        return self._alphas_cumprod
+
     def add_noise(self, x_0, t):
         noise = self._noise(x_0)
 
-        a_bar = self._alphas_cumprod[t].view(-1, 1, 1, 1)
-        x_t = a_bar.sqrt() * x_0 + (1 - a_bar).sqrt() * noise
+        a_bar_t = self._alphas_cumprod[t].view(-1, 1, 1, 1)
+        x_t = a_bar_t.sqrt() * x_0 + (1 - a_bar_t).sqrt() * noise
 
         return x_t, noise
 
