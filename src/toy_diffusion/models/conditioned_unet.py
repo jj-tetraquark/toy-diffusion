@@ -15,7 +15,6 @@ class ClassConditionedUNet(UNet):
     ):
         super().__init__(*args, **kwargs)
 
-        self._num_classes = num_classes
         # + 1 class for Classifier-Free Guidance
         self._class_embedding = nn.Embedding(num_classes + 1, class_embedding_dim)
         self._class_proj = nn.Sequential(
@@ -24,17 +23,21 @@ class ClassConditionedUNet(UNet):
             nn.Linear(self.time_embedding_dim * 4, self.time_embedding_dim),
         )
         self._cf_dropout = classifier_free_dropout
+        self._null_class = num_classes
+
+    @property
+    def null_class(self):
+        return self._null_class
 
     def forward(self, x, timestep, class_label):
 
         if self.training:
-            null_class = self._num_classes
             mask = (
                 torch.rand(class_label.shape, device=class_label.device)
                 > self._cf_dropout
             )
             class_label = torch.where(
-                mask, class_label, torch.ones_like(class_label) * null_class
+                mask, class_label, torch.ones_like(class_label) * self._null_class
             )
 
         class_labels_embed = self._class_embedding(class_label)
