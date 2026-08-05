@@ -22,7 +22,9 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
 
-    datamodule = CIFAR10DataModule(num_workers=4, batch_size=args.batch_size, images_only=True)
+    datamodule = CIFAR10DataModule(
+        num_workers=4, batch_size=args.batch_size, images_only=True
+    )
 
     model = DiffusionModule(
         UNet(),

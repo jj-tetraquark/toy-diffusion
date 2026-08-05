@@ -19,6 +19,7 @@ def parse_args():
 
     return argument_parser.parse_args()
 
+
 def grid_dims(n: int) -> tuple[int, int]:
     if n < 1:
         raise ValueError("n must be >= 1")
@@ -28,17 +29,18 @@ def grid_dims(n: int) -> tuple[int, int]:
     cols = math.ceil(n / rows)
     return rows, cols
 
+
 if __name__ == "__main__":
     args = parse_args()
 
     model = DiffusionModule(UNet(), cosine_beta_schedule, timesteps=1000, lr=0)
 
     if torch.cuda.is_available():
-        device = 'cuda'
+        device = "cuda"
     elif torch.mps.is_available():
-        device = 'mps'
+        device = "mps"
     else:
-        device = 'cpu'
+        device = "cpu"
 
     checkpoint = torch.load(args.checkpoint, map_location=device)
     model.load_state_dict(checkpoint["state_dict"])
@@ -47,11 +49,13 @@ if __name__ == "__main__":
 
     fig, axes = plt.subplots(n_rows, n_cols, figsize=(12, 12))
 
-    images = sample_ddim(model, (args.n, 3, 64, 64), inference_steps=50, temperature=0.0).numpy()
+    images = sample_ddim(
+        model, (args.n, 3, 64, 64), inference_steps=50, temperature=0.0
+    ).numpy()
 
     for i, ax in enumerate(axes.flatten()):
         img = np.floor(images[i] * 255).astype(np.uint8)
-        img = einops.rearrange(img, 'c h w -> h w c')
+        img = einops.rearrange(img, "c h w -> h w c")
         ax.imshow(img)
         ax.axis("off")
 

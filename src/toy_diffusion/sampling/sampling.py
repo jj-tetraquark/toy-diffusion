@@ -7,9 +7,17 @@ def sample_ddim(model, shape, inference_steps=50, temperature=0.0):
 
     model.eval()
 
-    timesteps = torch.linspace(
-        model.timesteps - 1, 0, inference_steps + 1, dtype=torch.long, device=model.device
-    ).round().long()
+    timesteps = (
+        torch.linspace(
+            model.timesteps - 1,
+            0,
+            inference_steps + 1,
+            dtype=torch.long,
+            device=model.device,
+        )
+        .round()
+        .long()
+    )
 
     noise_schedule = model.get_noise_schedule()
 
