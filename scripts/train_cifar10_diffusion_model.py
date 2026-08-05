@@ -4,6 +4,7 @@ import lightning as L
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import TensorBoardLogger
 
+from toy_diffusion.callbacks.ema import EMACallback
 from toy_diffusion.data.cifar10_datamodule import CIFAR10DataModule
 from toy_diffusion.models.conditioned_unet import ClassConditionedUNet
 from toy_diffusion.models.unet import UNet
@@ -61,7 +62,7 @@ if __name__ == "__main__":
     trainer = L.Trainer(
         logger=logger,
         max_epochs=args.epochs,
-        callbacks=[checkpoint_cb],
+        callbacks=[checkpoint_cb, EMACallback()],
     )
 
     trainer.fit(
