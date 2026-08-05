@@ -27,10 +27,7 @@ if __name__ == "__main__":
     )
 
     model = DiffusionModule(
-        UNet(),
-        cosine_beta_schedule,
-        timesteps=1000,
-        lr=args.lr,
+        UNet(), cosine_beta_schedule, timesteps=1000, lr=args.lr, conditioned=False
     )
 
     logger = TensorBoardLogger("tb_logs", name="diffusion_cifar10")

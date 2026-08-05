@@ -54,7 +54,7 @@ class CIFAR10DataModule(L.LightningDataModule):
             )
 
         if stage == "test":
-            test_set = CIFAR10(self.data_dir, train=False, transform=self.transform)
+            test_set = CIFAR10(self._data_dir, train=False, transform=self.transform)
             self._test_set = ImagesOnlyDataset(test_set)
 
     def train_dataloader(self):

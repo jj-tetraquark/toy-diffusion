@@ -4,7 +4,9 @@ import torch.nn.functional as F
 
 
 class DiffusionModule(L.LightningModule):
-    def __init__(self, model, beta_schedule, timesteps, lr, noise=None):
+    def __init__(
+        self, model, beta_schedule, timesteps, lr, noise=None, conditioned=True
+    ):
         super().__init__()
         self.model = model
         self.timesteps = timesteps
@@ -17,8 +19,10 @@ class DiffusionModule(L.LightningModule):
         if noise is None:
             self._noise = torch.randn_like
 
-    def forward(self, x, t):
-        return self.model(x, t)
+        self._conditioned = conditioned
+
+    def forward(self, *args):
+        return self.model(*args)
 
     def get_noise_schedule(self):
         return self._alphas_cumprod
@@ -32,13 +36,23 @@ class DiffusionModule(L.LightningModule):
         return x_t, noise
 
     def _do_step(self, batch, batch_idx):
-        x = batch
+        if self._conditioned:
+            x, condition = batch
+        else:
+            x = batch
+            condition = None
+
         batch_size = x.shape[0]
 
         t = torch.randint(0, self.timesteps, (batch_size, 1)).long().to(self.device)
 
         noised_images, noise = self.add_noise(x, t)
-        noise_pred = self.model(noised_images, t)
+
+        model_inputs = [noised_images, t]
+        if self._conditioned:
+            model_inputs.append(condition)
+
+        noise_pred = self.model(*model_inputs)
 
         loss = F.mse_loss(noise_pred, noise)
 

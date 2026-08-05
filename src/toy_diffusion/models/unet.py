@@ -1,80 +1,11 @@
-import einops
 import torch
 from torch import nn
 
-
-class SinusoidalPositionalEmbedding(nn.Module):
-    def __init__(self, dim):
-        super().__init__()
-
-        if dim % 2 != 0:
-            raise ValueError("Only use even embedding dimension sizes")
-
-        half = dim // 2
-        denom = torch.pow(10000, torch.arange(half) / half)
-        self.register_buffer("_denom", denom, persistent=False)
-
-    def forward(self, pos):
-        embedding = pos / self._denom
-        return torch.cat((embedding.sin(), embedding.cos()), dim=-1)
-
-
-class ResidualBlock(nn.Module):
-    def __init__(
-        self, in_channels, out_channels, time_embedding_dim, num_groups=32, dropout=0.1
-    ):
-        super().__init__()
-        self._time_proj = nn.Linear(time_embedding_dim, out_channels)
-
-        self._block1 = nn.Sequential(
-            nn.GroupNorm(num_groups, in_channels),
-            nn.SiLU(),
-            nn.Conv2d(in_channels, out_channels, 3, padding="same"),
-        )
-
-        self._block2 = nn.Sequential(
-            nn.GroupNorm(num_groups, out_channels),
-            nn.SiLU(),
-            nn.Dropout(dropout),
-            nn.Conv2d(out_channels, out_channels, 3, padding="same"),
-        )
-
-        if in_channels != out_channels:
-            self._res_conv = nn.Conv2d(in_channels, out_channels, 1)
-        else:
-            self._res_conv = nn.Identity()
-
-    def forward(self, x, time_emb):
-        h = self._block1(x)
-        time_emb = self._time_proj(time_emb)
-        h = h + time_emb[:, :, None, None]
-        h = self._block2(h)
-        return h + self._res_conv(x)
-
-
-class AttentionBlock(nn.Module):
-    def __init__(self, channels, num_groups=32):
-        super().__init__()
-        self.norm = nn.GroupNorm(num_groups, channels)
-        self.qkv = nn.Conv2d(channels, channels * 3, 1)
-        self.proj = nn.Conv2d(channels, channels, 1)
-
-    def forward(self, x):
-        h = self.norm(x)
-        qkv = self.qkv(h)
-        q, k, v = qkv.chunk(3, dim=1)
-
-        width = q.shape[-1]
-        q = einops.rearrange(q, "b c h w -> b (h w) c")
-        k = einops.rearrange(k, "b c h w -> b c (h w)")
-        v = einops.rearrange(v, "b c h w -> b (h w) c")
-
-        d_k = k.shape[1]
-
-        attn = torch.softmax((q @ k) * (d_k**-0.5), dim=-1)
-        h = einops.rearrange(attn @ v, "b (h w) c -> b c h w", w=width)
-
-        return x + self.proj(h)
+from toy_diffusion.models.components import (
+    AttentionBlock,
+    ResidualBlock,
+    SinusoidalPositionalEmbedding,
+)
 
 
 class UNet(nn.Module):
@@ -89,6 +20,7 @@ class UNet(nn.Module):
     ):
         super().__init__()
 
+        self._time_emb_dim = time_emb_dim
         self._time_emebedding = nn.Sequential(
             SinusoidalPositionalEmbedding(time_emb_dim),
             nn.Linear(time_emb_dim, time_emb_dim * 4),
@@ -135,28 +67,37 @@ class UNet(nn.Module):
             nn.Conv2d(ch, out_channels, 3, padding="same"),
         )
 
-    def forward(self, x, timestep):
-        t_emb = self._time_emebedding(timestep)
+    @property
+    def time_embedding_dim(self):
+        return self._time_emb_dim
 
+    def get_time_embedding(self, timestep):
+        return self._time_embedding(timestep)
+
+    def forward(self, x, timestep):
+        t_emb = self.get_time_embedding(timestep)
+        return self.forward_with_embedding(self, x, t_emb)
+
+    def forward_with_embedding(self, x, emb):
         h = self._conv_in(x)
 
         skip_connections = []
         for down_block, down_sample in zip(
             self._down_blocks, self._down_samples, strict=True
         ):
-            h = down_block(h, t_emb)
+            h = down_block(h, emb)
             skip_connections.append(h)
             h = down_sample(h)
 
-        h = self._mid_block1(h, t_emb)
+        h = self._mid_block1(h, emb)
         h = self._mid_attention(h)
-        h = self._mid_block2(h, t_emb)
+        h = self._mid_block2(h, emb)
 
         for up_sample, up_block in zip(self._up_samples, self._up_blocks, strict=True):
             h = up_sample(h)
             skip = skip_connections.pop()
             h = torch.cat([h, skip], dim=1)
-            h = up_block(h, t_emb)
+            h = up_block(h, emb)
 
         h = self._out(h)
         return h

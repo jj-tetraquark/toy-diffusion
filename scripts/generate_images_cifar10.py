@@ -1,10 +1,10 @@
 import math
-import numpy as np
 from argparse import ArgumentParser
 
-import matplotlib.pyplot as plt
-import torch
 import einops
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
 
 from toy_diffusion.models.unet import UNet
 from toy_diffusion.sampling import sample_ddim

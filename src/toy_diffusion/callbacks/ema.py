@@ -1,6 +1,7 @@
 import copy
-import torch
+
 import lightning as L
+import torch
 
 
 class EMACallback(L.Callback):
@@ -11,7 +12,7 @@ class EMACallback(L.Callback):
         self._backup = None
 
     def on_fit_start(self, trainer, pl_module):
-        self._ema_state = copy.deepcopy(pl_module.state_dict()){
+        self._ema_state = copy.deepcopy(pl_module.state_dict())
 
     @torch.no_grad()
     def on_train_batch_ends(self, trainer, pl_module):
