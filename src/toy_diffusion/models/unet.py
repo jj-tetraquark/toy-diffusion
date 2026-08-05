@@ -21,7 +21,7 @@ class UNet(nn.Module):
         super().__init__()
 
         self._time_emb_dim = time_emb_dim
-        self._time_emebedding = nn.Sequential(
+        self._time_embedding = nn.Sequential(
             SinusoidalPositionalEmbedding(time_emb_dim),
             nn.Linear(time_emb_dim, time_emb_dim * 4),
             nn.SiLU(),
@@ -76,7 +76,7 @@ class UNet(nn.Module):
 
     def forward(self, x, timestep):
         t_emb = self.get_time_embedding(timestep)
-        return self.forward_with_embedding(self, x, t_emb)
+        return self.forward_with_embedding(x, t_emb)
 
     def forward_with_embedding(self, x, emb):
         h = self._conv_in(x)
@@ -108,7 +108,7 @@ if __name__ == "__main__":
         in_channels=3,
         out_channels=3,
         time_emb_dim=128,
-        channels=[128, 256, 1024, 2048, 4096],
+        channels=[128, 256, 512],
     )
 
     print(model)
