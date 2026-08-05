@@ -19,7 +19,7 @@ class ImagesOnlyDataset(torch.utils.data.Dataset):
 
 class CIFAR10DataModule(L.LightningDataModule):
     def __init__(
-        self, data_dir: str = "datasets/", batch_size=64, num_workers=0, seed=42
+        self, data_dir: str = "datasets/", batch_size=64, num_workers=0, seed=42, images_only=False
     ):
         super().__init__()
         self._data_dir = data_dir
@@ -33,6 +33,7 @@ class CIFAR10DataModule(L.LightningDataModule):
         self._num_workers = num_workers
         self._seed = seed
         self._batch_size = batch_size
+        self._images_only = images_only
 
     def prepare_data(self):
         CIFAR10(self._data_dir, train=True, download=True)
@@ -42,7 +43,7 @@ class CIFAR10DataModule(L.LightningDataModule):
         if stage == "fit":
             cifar10 = CIFAR10(self._data_dir, train=True, transform=self._transform)
             self._train_set, self._val_set = random_split(
-                ImagesOnlyDataset(cifar10),
+                ImagesOnlyDataset(cifar10) if self._images_only else cifar10,
                 [0.9, 0.1],
                 torch.Generator().manual_seed(self._seed),
             )
